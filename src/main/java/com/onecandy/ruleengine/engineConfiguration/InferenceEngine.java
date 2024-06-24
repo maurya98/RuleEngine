@@ -2,9 +2,6 @@ package com.onecandy.ruleengine.engineConfiguration;
 
 import org.mvel2.MVEL;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import com.onecandy.ruleengine.databases.models.RuleNamespace;
 import com.onecandy.ruleengine.databases.models.Rules;
