@@ -1,7 +1,6 @@
 package com.onecandy.ruleengine.langParser.dslResolver;
 
 import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 public class DSLKeywordResolver {
     Map<String, DSLResolver> dslKeywordResolverList;
 
-    @Autowired
     public DSLKeywordResolver(List<DSLResolver> resolverList) {
         dslKeywordResolverList = resolverList.stream()
                 .collect(Collectors.toMap(DSLResolver::getResolverKeyword, Function.identity()));
