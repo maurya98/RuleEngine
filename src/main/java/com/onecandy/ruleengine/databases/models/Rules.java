@@ -24,8 +24,7 @@ public class Rules {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long ruleId;
 
-    @Id
-    private RuleNamespace ruleNamespace;
+    private String ruleNamespace;
 
     @Column(columnDefinition = "TEXT")
     private String conditions;

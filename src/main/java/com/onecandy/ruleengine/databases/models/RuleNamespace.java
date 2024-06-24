@@ -16,7 +16,7 @@ import lombok.Data;
 @Entity(name = "rule_namespace")
 public class RuleNamespace {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     
     @Column(unique = true, nullable = false)

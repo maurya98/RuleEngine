@@ -18,7 +18,7 @@ import com.onecandy.ruleengine.utils.ClassLoaderUtil;
 
 @Service
 @SuppressWarnings("rawtypes")
-public class RuleService {
+public class RuleService extends InferenceEngine {
 
     @Autowired
     private RuleRepo ruleRepository;
@@ -27,14 +27,11 @@ public class RuleService {
     private RuleNamespaceRepo ruleNamespaceRepo;
 
     @Autowired
-    private InferenceEngine inferenceEngine;
-
-    @Autowired
     private RuleParser ruleParser;
 
     public Object processRules(String namespaceName, Object inputData) {
         List<Rules> rules = ruleRepository.findByRuleNamespaceAndIsActive(namespaceName, true);
-        Object executionResult = inferenceEngine.run(rules, inputData, namespaceName);
+        Object executionResult = run(rules, inputData, namespaceName);
         return applyAfterExecutionBusinessLogic(executionResult, inputData, namespaceName);
     }
 
