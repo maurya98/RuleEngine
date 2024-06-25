@@ -1,7 +1,11 @@
 package com.onecandy.ruleengine.engineConfiguration;
 
-import org.mvel2.MVEL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import com.onecandy.ruleengine.databases.models.RuleNamespace;
 import com.onecandy.ruleengine.databases.models.Rules;
@@ -9,9 +13,7 @@ import com.onecandy.ruleengine.databases.repositories.RuleNamespaceRepo;
 import com.onecandy.ruleengine.langParser.RuleParser;
 import com.onecandy.ruleengine.utils.ClassLoaderUtil;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -44,14 +46,15 @@ public abstract class InferenceEngine {
     }
 
     protected List<Rules> resolve(List<Rules> conflictSet, Object inputData, String ruleNamespace) {
-        return applyResolvingBusinessLogic(conflictSet, inputData , ruleNamespace);
+        return applyResolvingBusinessLogic(conflictSet, inputData, ruleNamespace);
     }
 
     protected Object executeRule(List<Rules> rules, Object inputData, String ruleNamespace) {
         RuleNamespace namespace = getNamespace(ruleNamespace);
         Class<?> outputClass = ClassLoaderUtil.loadClass(namespace.getOutputClass());
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
-        return rules.stream().map(rule -> ruleParser.parseAction(rule.getActions(), inputData, outputResult)).collect(Collectors.toList()); 
+        return rules.stream().map(rule -> ruleParser.parseAction(rule.getActions(), inputData, outputResult))
+                .collect(Collectors.toList());
     }
 
     protected List<Rules> applyResolvingBusinessLogic(List<Rules> conflictSet, Object inputData, String ruleNamespace) {
@@ -65,13 +68,16 @@ public abstract class InferenceEngine {
         }
 
         String script = businessLogicOpt.getResolvingScript();
-        Map<String, Object> context = new HashMap<>();
-        context.put("conflictSet", conflictSet);
-        context.put("input", inputData);
-        context.put("output", outputResult);
-        context.put("ruleParser", ruleParser);
+        ExpressionParser parser = new SpelExpressionParser();
+        Expression expression = parser.parseExpression(script);
 
-        return (List<Rules>) MVEL.eval(script, context);
+        EvaluationContext context = new StandardEvaluationContext();
+        context.setVariable("conflictSet", conflictSet);
+        context.setVariable("input", inputData);
+        context.setVariable("output", outputResult);
+        context.setVariable("ruleParser", ruleParser);
+
+        return (List<Rules>) expression.getValue(context);
     }
 
     protected abstract RuleNamespace getNamespace(String ruleNamespace);

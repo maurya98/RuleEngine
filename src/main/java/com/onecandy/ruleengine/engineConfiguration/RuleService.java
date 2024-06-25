@@ -1,11 +1,13 @@
 package com.onecandy.ruleengine.engineConfiguration;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.mvel2.MVEL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 
 import com.onecandy.ruleengine.databases.models.RuleNamespace;
@@ -22,7 +24,7 @@ public class RuleService extends InferenceEngine {
 
     @Autowired
     private RuleRepo ruleRepository;
-    
+
     @Autowired
     private RuleNamespaceRepo ruleNamespaceRepo;
 
@@ -35,7 +37,7 @@ public class RuleService extends InferenceEngine {
         return applyAfterExecutionBusinessLogic(executionResult, inputData, namespaceName);
     }
 
-        protected Object applyAfterExecutionBusinessLogic(Object conflictSet, Object inputData, String ruleNamespace) {
+    protected Object applyAfterExecutionBusinessLogic(Object conflictSet, Object inputData, String ruleNamespace) {
         RuleNamespace namespace = getNamespace(ruleNamespace);
         Class<?> outputClass = ClassLoaderUtil.loadClass(namespace.getOutputClass());
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
@@ -46,17 +48,19 @@ public class RuleService extends InferenceEngine {
         }
 
         String script = businessLogicOpt.getPostExecutionScript();
-        Map<String, Object> context = new HashMap<>();
-        context.put("conflictSet", conflictSet);
-        context.put("input", inputData);
-        context.put("output", outputResult);
-        context.put("ruleParser", ruleParser);
+        ExpressionParser parser = new SpelExpressionParser();
+        Expression expression = parser.parseExpression(script);
 
-        return MVEL.eval(script, context);
+        EvaluationContext context = new StandardEvaluationContext();
+        context.setVariable("conflictSet", conflictSet);
+        context.setVariable("input", inputData);
+        context.setVariable("output", outputResult);
+        context.setVariable("ruleParser", ruleParser);
+
+        return expression.getValue(context);
     }
 
     protected RuleNamespace getNamespace(String ruleNamespace) {
         return ruleNamespaceRepo.findByNamespaceAndIsActive(ruleNamespace, true);
     }
 }
-

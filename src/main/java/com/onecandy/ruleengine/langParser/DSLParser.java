@@ -3,8 +3,8 @@ package com.onecandy.ruleengine.langParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.onecandy.ruleengine.langParser.dslResolver.DSLKeywordResolver;
-import com.onecandy.ruleengine.langParser.dslResolver.DSLResolver;
+import com.onecandy.ruleengine.databases.models.DslMapper;
+import com.onecandy.ruleengine.databases.repositories.DSLMapperRepo;
 
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 public class DSLParser {
 
     @Autowired
-    private DSLKeywordResolver keywordResolver;
+    private DSLMapperRepo dslMapperRepo;
+
     @Autowired
     private DSLPatternUtil dslPatternUtil;
 
@@ -33,9 +34,11 @@ public class DSLParser {
                             String extractedDslKeyword = dslPatternUtil.extractKeyword(dslKeyword);
                             String keyResolver = dslPatternUtil.getKeywordResolver(extractedDslKeyword);
                             String keywordValue = dslPatternUtil.getKeywordValue(extractedDslKeyword);
-                            DSLResolver resolver = keywordResolver.getResolver(keyResolver).get();
-                            Object resolveValue = resolver.resolveValue(keywordValue);
-                            dslKeywordToResolverValueMap.put(dslKeyword, resolveValue);
+                            DslMapper dslMapper = dslMapperRepo.findByCategoryAndSubCategoryAndIsActive(keyResolver, keywordValue, true);
+                            if(dslMapper != null){
+                                Object resolveValue = dslMapper.getValues();
+                                dslKeywordToResolverValueMap.put(dslKeyword, resolveValue);
+                            }
                         }
                 );
         return dslKeywordToResolverValueMap;
