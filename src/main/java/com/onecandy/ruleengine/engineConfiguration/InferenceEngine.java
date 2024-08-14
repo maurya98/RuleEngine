@@ -7,13 +7,16 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onecandy.ruleengine.databases.models.RuleNamespace;
 import com.onecandy.ruleengine.databases.models.Rules;
 import com.onecandy.ruleengine.databases.repositories.RuleNamespaceRepo;
 import com.onecandy.ruleengine.langParser.RuleParser;
 import com.onecandy.ruleengine.utils.ClassLoaderUtil;
+import com.onecandy.ruleengine.utils.DynamicClassGenerator;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -25,7 +28,7 @@ public abstract class InferenceEngine {
     @Autowired
     private RuleNamespaceRepo ruleNamespaceRepo;
 
-    public Object run(List<Rules> listOfRules, Object inputData, String ruleNamespace) {
+    public Object run(List<Rules> listOfRules, Object inputData, String ruleNamespace) throws Exception {
         // STEP 1: MATCH
         List<Rules> conflictSet = match(listOfRules, inputData);
 
@@ -45,21 +48,27 @@ public abstract class InferenceEngine {
                 .collect(Collectors.toList());
     }
 
-    protected List<Rules> resolve(List<Rules> conflictSet, Object inputData, String ruleNamespace) {
+    protected List<Rules> resolve(List<Rules> conflictSet, Object inputData, String ruleNamespace) throws Exception {
         return applyResolvingBusinessLogic(conflictSet, inputData, ruleNamespace);
     }
 
-    protected Object executeRule(List<Rules> rules, Object inputData, String ruleNamespace) {
+    protected Object executeRule(List<Rules> rules, Object inputData, String ruleNamespace) throws Exception {
         RuleNamespace namespace = getNamespace(ruleNamespace);
-        Class<?> outputClass = ClassLoaderUtil.loadClass(namespace.getOutputClass());
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> fields;
+        fields = mapper.readValue(namespace.getOutputFields(), Map.class);
+        Class<?> outputClass = DynamicClassGenerator.generateClass(namespace.getNamespace(), fields);
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
         return rules.stream().map(rule -> ruleParser.parseAction(rule.getActions(), inputData, outputResult))
                 .collect(Collectors.toList());
     }
 
-    protected List<Rules> applyResolvingBusinessLogic(List<Rules> conflictSet, Object inputData, String ruleNamespace) {
+    protected List<Rules> applyResolvingBusinessLogic(List<Rules> conflictSet, Object inputData, String ruleNamespace) throws Exception {
         RuleNamespace namespace = getNamespace(ruleNamespace);
-        Class<?> outputClass = ClassLoaderUtil.loadClass(namespace.getOutputClass());
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> fields;
+        fields = mapper.readValue(namespace.getOutputFields(), Map.class);
+        Class<?> outputClass = DynamicClassGenerator.generateClass(namespace.getNamespace(), fields);
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
 
         RuleNamespace businessLogicOpt = ruleNamespaceRepo.findByNamespaceAndIsActive(ruleNamespace, true);

@@ -18,24 +18,24 @@ public class RuleNamespace {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    
+
     @Column(unique = true, nullable = false)
     private String namespace;
-    
-    @Column(nullable = false)
-    private String inputClass;
-    
-    @Column(nullable = false)
-    private String outputClass;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "jsonb")
+    private String inputFields;
+
+    @Column(nullable = false, columnDefinition = "jsonb")
+    private String outputFields;
+
+    @Column(columnDefinition = "TEXT")
     private String resolvingScript;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String postExecutionScript;
 
     private String createdBy;
-    
+
     private String updatedBy;
 
     @CreationTimestamp
@@ -48,4 +48,3 @@ public class RuleNamespace {
     private boolean isActive;
 
 }
-
