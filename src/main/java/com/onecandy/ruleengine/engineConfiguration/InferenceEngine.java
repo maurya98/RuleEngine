@@ -6,6 +6,7 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.scheduling.annotation.Async;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onecandy.ruleengine.databases.models.RuleNamespace;
@@ -17,16 +18,23 @@ import com.onecandy.ruleengine.utils.DynamicClassGenerator;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public abstract class InferenceEngine {
 
-    @Autowired
-    private RuleParser ruleParser;
+    private final RuleParser ruleParser;
+    private final RuleNamespaceRepo ruleNamespaceRepo;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    private RuleNamespaceRepo ruleNamespaceRepo;
+    public InferenceEngine(RuleParser ruleParser, RuleNamespaceRepo ruleNamespaceRepo) {
+        this.ruleParser = ruleParser;
+        this.ruleNamespaceRepo = ruleNamespaceRepo;
+        this.objectMapper = new ObjectMapper();
+    }
 
     public Object run(List<Rules> listOfRules, Object inputData, String ruleNamespace) throws Exception {
         // STEP 1: MATCH
@@ -49,30 +57,23 @@ public abstract class InferenceEngine {
     }
 
     protected List<Rules> resolve(List<Rules> conflictSet, Object inputData, String ruleNamespace) throws Exception {
-        return applyResolvingBusinessLogic(conflictSet, inputData, ruleNamespace);
+        Future<List<Rules>> future = applyResolvingBusinessLogicAsync(conflictSet, inputData, ruleNamespace);
+        return future.get(); // wait for the async result
     }
 
-    protected Object executeRule(List<Rules> rules, Object inputData, String ruleNamespace) throws Exception {
-        RuleNamespace namespace = getNamespace(ruleNamespace);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> fields;
-        fields = mapper.readValue(namespace.getOutputFields(), Map.class);
-        Class<?> outputClass = DynamicClassGenerator.generateClass(namespace.getNamespace(), fields);
-        Object outputResult = ClassLoaderUtil.createInstance(outputClass);
-        return rules.stream().map(rule -> ruleParser.parseAction(rule.getActions(), inputData, outputResult))
-                .collect(Collectors.toList());
+    @Async
+    protected CompletableFuture<List<Rules>> applyResolvingBusinessLogicAsync(List<Rules> conflictSet, Object inputData, String ruleNamespace) throws Exception {
+        return CompletableFuture.completedFuture(applyResolvingBusinessLogic(conflictSet, inputData, ruleNamespace));
     }
 
     protected List<Rules> applyResolvingBusinessLogic(List<Rules> conflictSet, Object inputData, String ruleNamespace) throws Exception {
         RuleNamespace namespace = getNamespace(ruleNamespace);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> fields;
-        fields = mapper.readValue(namespace.getOutputFields(), Map.class);
+        Map<String, String> fields = objectMapper.readValue(namespace.getOutputFields(), Map.class);
         Class<?> outputClass = DynamicClassGenerator.generateClass(namespace.getNamespace(), fields);
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
 
         RuleNamespace businessLogicOpt = ruleNamespaceRepo.findByNamespaceAndIsActive(ruleNamespace, true);
-        if (businessLogicOpt.getResolvingScript() == null || businessLogicOpt.getResolvingScript() == "") {
+        if (businessLogicOpt.getResolvingScript() == null || businessLogicOpt.getResolvingScript().isEmpty()) {
             return conflictSet;
         }
 
@@ -87,6 +88,16 @@ public abstract class InferenceEngine {
         context.setVariable("ruleParser", ruleParser);
 
         return (List<Rules>) expression.getValue(context);
+    }
+
+    protected Object executeRule(List<Rules> rules, Object inputData, String ruleNamespace) throws Exception {
+        RuleNamespace namespace = getNamespace(ruleNamespace);
+        Map<String, String> fields = objectMapper.readValue(namespace.getOutputFields(), Map.class);
+        Class<?> outputClass = DynamicClassGenerator.generateClass(namespace.getNamespace(), fields);
+        Object outputResult = ClassLoaderUtil.createInstance(outputClass);
+        return rules.stream()
+                .map(rule -> ruleParser.parseAction(rule.getActions(), inputData, outputResult))
+                .collect(Collectors.toList());
     }
 
     protected abstract RuleNamespace getNamespace(String ruleNamespace);

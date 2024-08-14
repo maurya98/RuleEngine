@@ -25,6 +25,10 @@ import com.onecandy.ruleengine.utils.DynamicClassGenerator;
 @SuppressWarnings("rawtypes")
 public class RuleService extends InferenceEngine {
 
+    public RuleService(RuleParser ruleParser, RuleNamespaceRepo ruleNamespaceRepo) {
+        super(ruleParser, ruleNamespaceRepo);
+    }
+
     @Autowired
     private RuleRepo ruleRepository;
 
