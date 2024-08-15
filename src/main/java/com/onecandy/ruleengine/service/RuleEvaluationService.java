@@ -3,13 +3,13 @@ package com.onecandy.ruleengine.service;
 import java.util.Map;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.onecandy.ruleengine.core.RuleService;
 import com.onecandy.ruleengine.databases.models.RuleNamespace;
 import com.onecandy.ruleengine.databases.repositories.RuleNamespaceRepo;
-import com.onecandy.ruleengine.engineConfiguration.RuleService;
 import com.onecandy.ruleengine.utils.ClassLoaderUtil;
 import com.onecandy.ruleengine.utils.CustomResponse;
 import com.onecandy.ruleengine.utils.DynamicClassGenerator;
@@ -22,16 +22,17 @@ public class RuleEvaluationService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleEvaluationService.class);
 
-    @Autowired
-    private RuleService ruleService;
+    private final RuleService ruleService;
+    private final RuleNamespaceRepo ruleNamespaceRepo;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private RuleNamespaceRepo ruleNamespaceRepo;
+    public RuleEvaluationService(RuleService ruleService, RuleNamespaceRepo ruleNamespaceRepo, ObjectMapper objectMapper) {
+        this.ruleService = ruleService;
+        this.ruleNamespaceRepo = ruleNamespaceRepo;
+        this.objectMapper = objectMapper;
+    }
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    public CustomResponse<?> evaluateRules(String namespace, Map<String, Object> inputData) {
+    public CustomResponse<Object> evaluateRules(String namespace, Map<String, Object> inputData) {
         try {
             RuleNamespace ns = ruleNamespaceRepo.findByNamespaceAndIsActive(namespace, true);
             if (ns == null) {
@@ -55,7 +56,7 @@ public class RuleEvaluationService {
         }
     }
 
-    private Map<String, String> parseInputFields(String inputFields) throws Exception {
+    private Map<String, String> parseInputFields(String inputFields) throws JsonProcessingException {
         return objectMapper.readValue(inputFields, objectMapper.getTypeFactory().constructMapType(Map.class, String.class, String.class));
     }
 }

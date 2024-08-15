@@ -2,7 +2,6 @@ package com.onecandy.ruleengine.restapi;
 
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,11 +15,14 @@ import com.onecandy.ruleengine.utils.CustomResponse;
 @RequestMapping("/rules")
 public class RuleController {
 
-    @Autowired
     private RuleEvaluationService ruleEvaluationService;
 
+    public RuleController(RuleEvaluationService ruleEvaluationService){
+        this.ruleEvaluationService = ruleEvaluationService;
+    }
+
     @PostMapping("/evaluate/{namespace}")
-    public CustomResponse<?> evaluateRules(@PathVariable String namespace, @RequestBody Map<String, Object> inputData) {
+    public CustomResponse<Object> evaluateRules(@PathVariable String namespace, @RequestBody Map<String, Object> inputData) {
         return ruleEvaluationService.evaluateRules(namespace, inputData);
     }
 }

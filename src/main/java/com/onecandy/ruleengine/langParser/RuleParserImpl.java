@@ -1,7 +1,6 @@
 package com.onecandy.ruleengine.langParser;
 
 import java.util.HashMap;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -10,13 +9,15 @@ import java.util.Map;
 @SuppressWarnings("rawtypes")
 public class RuleParserImpl implements RuleParser {
 
-    @Autowired
     protected DSLParser dslParser;
-    @Autowired
     protected MVELParser mvelParser;
-
     private final String INPUT_KEYWORD = "input";
     private final String OUTPUT_KEYWORD = "output";
+
+    protected RuleParserImpl(DSLParser dslParser, MVELParser mvelParser){
+        this.dslParser = dslParser;
+        this.mvelParser = mvelParser;
+    }
 
     /**
      * Parsing in given priority/steps.
@@ -33,8 +34,7 @@ public class RuleParserImpl implements RuleParser {
         String resolvedDslExpression = dslParser.resolveDomainSpecificKeywords(condition);
         Map<String, Object> input = new HashMap<>();
         input.put(INPUT_KEYWORD, inputData);
-        boolean match = mvelParser.parseMvelExpression(resolvedDslExpression, input);
-        return match;
+        return mvelParser.parseMvelExpression(resolvedDslExpression, input);
     }
 
     @Override

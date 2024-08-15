@@ -1,9 +1,8 @@
-package com.onecandy.ruleengine.engineConfiguration;
+package com.onecandy.ruleengine.core;
 
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -25,18 +24,16 @@ import com.onecandy.ruleengine.utils.DynamicClassGenerator;
 @SuppressWarnings("rawtypes")
 public class RuleService extends InferenceEngine {
 
-    public RuleService(RuleParser ruleParser, RuleNamespaceRepo ruleNamespaceRepo) {
+    private final RuleRepo ruleRepository;
+    private final RuleNamespaceRepo ruleNamespaceRepo;
+    private final RuleParser ruleParser;
+
+    public RuleService(RuleParser ruleParser, RuleNamespaceRepo ruleNamespaceRepo, RuleRepo ruleRepository) {
         super(ruleParser, ruleNamespaceRepo);
+        this.ruleRepository = ruleRepository;
+        this.ruleNamespaceRepo = ruleNamespaceRepo;
+        this.ruleParser = ruleParser;
     }
-
-    @Autowired
-    private RuleRepo ruleRepository;
-
-    @Autowired
-    private RuleNamespaceRepo ruleNamespaceRepo;
-
-    @Autowired
-    private RuleParser ruleParser;
 
     public Object processRules(String namespaceName, Object inputData) throws Exception {
         List<Rules> rules = ruleRepository.findByRuleNamespaceAndIsActive(namespaceName, true);
@@ -57,7 +54,7 @@ public class RuleService extends InferenceEngine {
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
 
         RuleNamespace businessLogicOpt = ruleNamespaceRepo.findByNamespaceAndIsActive(ruleNamespace, true);
-        if (businessLogicOpt.getResolvingScript() == null || businessLogicOpt.getResolvingScript() == "") {
+        if (businessLogicOpt.getResolvingScript() == null || businessLogicOpt.getResolvingScript().isEmpty()) {
             return conflictSet;
         }
 

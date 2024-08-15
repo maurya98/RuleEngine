@@ -1,6 +1,5 @@
 package com.onecandy.ruleengine.langParser;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.onecandy.ruleengine.databases.models.DslMapper;
@@ -14,11 +13,13 @@ import java.util.stream.Collectors;
 @Service
 public class DSLParser {
 
-    @Autowired
     private DSLMapperRepo dslMapperRepo;
-
-    @Autowired
     private DSLPatternUtil dslPatternUtil;
+
+    protected DSLParser(DSLMapperRepo dslMapperRepo, DSLPatternUtil dslPatternUtil){
+        this.dslMapperRepo = dslMapperRepo;
+        this.dslPatternUtil = dslPatternUtil;
+    }
 
     public String resolveDomainSpecificKeywords(String expression){
         Map<String, Object> dslKeywordToResolverValueMap = executeDSLResolver(expression);
