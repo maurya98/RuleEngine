@@ -29,7 +29,7 @@ public class DSLParser {
     private Map<String, Object> executeDSLResolver(String expression) {
         List<String> listOfDslKeyword = dslPatternUtil.getListOfDslKeywords(expression);
         Map<String, Object> dslKeywordToResolverValueMap = new HashMap<>();
-        listOfDslKeyword.stream()
+        listOfDslKeyword.parallelStream()
                 .forEach(
                         dslKeyword -> {
                             String extractedDslKeyword = dslPatternUtil.extractKeyword(dslKeyword);
@@ -46,7 +46,7 @@ public class DSLParser {
     }
 
     private String replaceKeywordsWithValue(String expression, Map<String, Object> dslKeywordToResolverValueMap){
-        List<String> keyList = dslKeywordToResolverValueMap.keySet().stream().collect(Collectors.toList());
+        List<String> keyList = dslKeywordToResolverValueMap.keySet().parallelStream().collect(Collectors.toList());
         for (int index = 0; index < keyList.size(); index++){
             String key = keyList.get(index);
             String dslResolveValue = dslKeywordToResolverValueMap.get(key).toString();

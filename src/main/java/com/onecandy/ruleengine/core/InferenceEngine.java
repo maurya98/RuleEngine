@@ -1,6 +1,5 @@
 package com.onecandy.ruleengine.core;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -26,7 +25,6 @@ public abstract class InferenceEngine {
     private final RuleNamespaceRepo ruleNamespaceRepo;
     private final ObjectMapper objectMapper;
 
-    @Autowired
     protected InferenceEngine(RuleParser ruleParser, RuleNamespaceRepo ruleNamespaceRepo) {
         this.ruleParser = ruleParser;
         this.ruleNamespaceRepo = ruleNamespaceRepo;
@@ -48,7 +46,7 @@ public abstract class InferenceEngine {
     }
 
     protected List<Rules> match(List<Rules> listOfRules, Object inputData) {
-        return listOfRules.stream()
+        return listOfRules.parallelStream()
                 .filter(rule -> ruleParser.parseCondition(rule.getConditions(), inputData))
                 .collect(Collectors.toList());
     }
@@ -82,7 +80,7 @@ public abstract class InferenceEngine {
         Map<String, String> fields = objectMapper.readValue(namespace.getOutputFields(), Map.class);
         Class<?> outputClass = DynamicClassGenerator.generateClass(namespace.getNamespace(), fields);
         Object outputResult = ClassLoaderUtil.createInstance(outputClass);
-        return rules.stream()
+        return rules.parallelStream()
                 .map(rule -> ruleParser.parseAction(rule.getActions(), inputData, outputResult))
                 .collect(Collectors.toList());
     }

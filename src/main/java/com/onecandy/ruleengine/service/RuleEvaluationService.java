@@ -38,7 +38,6 @@ public class RuleEvaluationService {
             if (ns == null) {
                 return CustomResponse.error(400, namespace, "No namespace Found");
             }
-
             Map<String, String> fields = parseInputFields(ns.getInputFields());
             Class<?> inputClass = DynamicClassGenerator.generateClass(ns.getNamespace(), fields);
             Object inputObject = ClassLoaderUtil.createInstance(inputClass);
